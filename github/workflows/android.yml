@@ -1,0 +1,45 @@
+
+name: Dark Lands RPG Android
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.4.1"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.4.1
+
+    steps:
+      - name: Завантажити код
+        uses: actions/checkout@v4
+
+      - name: Підготувати Godot
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config
+          cp -a /root/.config/godot ~/.config/godot
+          cp -a /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/
+
+      - name: Перевірити проєкт
+        run: |
+          godot --headless --editor --path . --quit
+
+      - name: Зібрати APK
+        run: |
+          mkdir -p build/android
+          godot --headless --path . \
+            --export-debug "Android" \
+            build/android/DarkLands.apk
+
+      - name: Зберегти APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dark-Lands-RPG-Android
+          path: build/android/DarkLands.apk
+          if-no-files-found: error
+          
