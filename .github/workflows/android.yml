@@ -1,0 +1,79 @@
+
+name: Android APK Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Build Dark Lands RPG APK
+    runs-on: ubuntu-24.04
+
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - name: Завантажити код
+        uses: actions/checkout@v4
+
+      - name: Встановити Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Встановити Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Встановити компоненти Android
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;23.2.8568313" \
+            "cmake;3.10.2.4988404"
+
+      - name: Встановити Godot 4.4.1 і шаблони
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.4.1
+          use-dotnet: false
+          include-templates: true
+
+      - name: Перевірити файли
+        run: |
+          test -f project.godot
+          test -f main.tscn
+          test -f main.gd
+          test -f export_presets.cfg
+          godot --version
+
+      - name: Перевірити проєкт
+        run: |
+          godot --headless --editor --path . --quit
+
+      - name: Зібрати Android APK
+        run: |
+          mkdir -p build/android
+          godot --headless --path . \
+            --verbose \
+            --export-debug "Android" \
+            build/android/DarkLands.apk
+
+      - name: Перевірити APK
+        run: |
+          test -s build/android/DarkLands.apk
+          ls -lh build/android/DarkLands.apk
+
+      - name: Зберегти APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dark-Lands-RPG-Android
+          path: build/android/DarkLands.apk
+          if-no-files-found: error
+          retention-days: 7
