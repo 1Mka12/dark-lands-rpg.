@@ -1,5 +1,5 @@
 
-name: Dark Lands RPG Android
+name: Add GitHub Actions workflow for Android build
 
 on:
   workflow_dispatch:
@@ -7,22 +7,42 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-android:
+    name: Build Android APK
     runs-on: ubuntu-24.04
 
     steps:
       - name: Завантажити код
         uses: actions/checkout@v4
 
-      - name: Встановити Godot
+      - name: Встановити Godot і шаблони експорту
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.4.1
           use-dotnet: false
+          include-templates: true
 
-      - name: Перевірити проєкт
-        run: godot --headless --editor --path . --quit
+      - name: Перевірити файли проєкту
+        run: |
+          test -f project.godot
+          test -f main.tscn
+          test -f main.gd
+          test -f export_presets.cfg
+
+      - name: Перевірити Godot
+        run: |
+          godot --version
+          godot --headless --editor --path . --quit
+
+      - name: Перевірити Android-шаблони
+        run: |
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          test -f "$TEMPLATE_DIR/android_debug.apk"
+          test -f "$TEMPLATE_DIR/android_release.apk"
 
       - name: Зібрати Android APK
         run: |
@@ -31,10 +51,16 @@ jobs:
             --export-debug "Android" \
             build/android/DarkLands.apk
 
+      - name: Перевірити APK
+        run: |
+          test -s build/android/DarkLands.apk
+          ls -lh build/android/DarkLands.apk
+
       - name: Зберегти APK
         uses: actions/upload-artifact@v4
         with:
           name: Dark-Lands-RPG-Android
           path: build/android/DarkLands.apk
           if-no-files-found: error
+          retention-days: 7
           
