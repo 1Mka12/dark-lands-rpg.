@@ -1,5 +1,5 @@
 
-name: Add GitHub Actions workflow for Android build
+name: Dark Lands RPG Android
 
 on:
   workflow_dispatch:
@@ -15,39 +15,56 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-24.04
 
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - name: Завантажити код
         uses: actions/checkout@v4
 
-      - name: Встановити Godot і шаблони експорту
+      - name: Встановити Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Встановити Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Встановити компоненти Android
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;23.2.8568313" \
+            "cmake;3.10.2.4988404"
+
+      - name: Встановити Godot і шаблони
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.4.1
           use-dotnet: false
           include-templates: true
 
-      - name: Перевірити файли проєкту
+      - name: Перевірити файли
         run: |
           test -f project.godot
           test -f main.tscn
           test -f main.gd
           test -f export_presets.cfg
-
-      - name: Перевірити Godot
-        run: |
           godot --version
+
+      - name: Перевірити проєкт Godot
+        run: |
           godot --headless --editor --path . --quit
 
-      - name: Перевірити Android-шаблони
-        run: |
-          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
-          test -f "$TEMPLATE_DIR/android_debug.apk"
-          test -f "$TEMPLATE_DIR/android_release.apk"
-
-      - name: Зібрати Android APK
+      - name: Зібрати APK
         run: |
           mkdir -p build/android
           godot --headless --path . \
+            --verbose \
             --export-debug "Android" \
             build/android/DarkLands.apk
 
